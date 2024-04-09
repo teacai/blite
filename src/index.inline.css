@@ -1,0 +1,98 @@
+* {
+    box-sizing: border-box;
+}
+html, body, main, .modal, form {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+main {
+    padding: 0.5rem;
+    overflow: auto;
+}
+nav {
+    background-color: #333;
+    overflow: auto;
+    min-height: 2rem;
+    width: 100%;
+}
+nav a {
+    display: inline-block;
+    padding: 0.7rem 1.1rem;
+    text-decoration: none;
+    color: #fff;
+}
+nav a:hover {
+    color: #aaa;
+}
+alert {
+    display: block;
+    margin: 1rem 4rem;
+    padding: 1rem;
+    border: 1px solid #333;
+}
+.danger {
+    border-color: #aa3333;
+    color: #aa3333;
+}
+.warn {
+    border-color: #ffaa33;
+    color: #ffaa33;
+}
+.info {
+    border-color: #3333aa;
+    color: #3333aa;
+}
+.success {
+    border-color: #33aa33;
+    color: #33aa33;
+}
+.left {
+    float: left;
+}
+.right {
+    float: right;
+}
+.modal {
+    position: relative;
+    background-color: #fff;
+}
+.modal .box {
+    padding: 0.5rem;
+    position: absolute;
+    margin: auto;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    max-width: 30rem;
+    max-height: 12rem;
+    width: 99%;
+    height: 99%;
+}
+.form div {
+    margin: 0.1rem 0.3rem;
+}
+.form div * {
+    margin: 0.1rem 0.2rem;
+    display: inline-block;
+    min-height: 1rem;
+}
+.form div input, .form div label,
+.form div textarea, .form div select {
+    width: calc(100% - 0.4rem);
+}
+.form div.textarea, .form textarea {
+    height: 80%
+}
+
+@media screen and (min-width: 718px) {
+    .form div input, .form div select {
+        width: calc(60% - 0.6rem);
+    }
+    .form div label {
+        width: calc(40% - 0.6rem);
+        text-align: right;
+    }
+}
