@@ -16,8 +16,12 @@
         exit(0);
     } else {
         $page = $db->getPage($router->route());
-        if (!$page) {
-            $page = (object)['title' => '404 Not found', 'contentType' => 'txt',
+        $public = $page && $page->access === 'public';
+        $noAccess = !$public && !$router->isAdmin();
+        $notPublished = is_null($page->published_at) || empty($page->published_at)
+                            || (strtotime($page->published_at) - strtotime(date("Y-m-d\TH:i")) > 0);
+        if (!$page || $noAccess || $notPublished) {
+            $page = (object)['title' => '404 Not found', 'content_type' => 'txt',
                 'content' => 'Page could not be found: '.$router->route()];
         }
     }
@@ -40,15 +44,15 @@
             <a href="" class="logo">bLite</a>
         </div>
         <div class="right">
-            <a href="admin">Admin</a>
+            <?php if ($router->isAdmin()) echo '<a href="admin">Admin</a>' ?>
             <a href="home" class="active">Home</a>
         </div>
     </nav>
     <main>
     <?php
-    if ( $page->contentType == 'php' ) {
+    if ( $page->content_type == 'php' ) {
         eval( $page->content );
-    } elseif ( $page->contentType == 'html' ) {
+    } elseif ( $page->content_type == 'html' ) {
         echo $page->content;
     } else {
         echo "<pre>".$page->content."</pre>";

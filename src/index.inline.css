@@ -86,6 +86,12 @@ alert {
 .form div.textarea, .form textarea {
     height: 80%
 }
+.btn {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #333;
+    text-decoration: none;
+}
 
 @media screen and (min-width: 718px) {
     .form div input, .form div select {

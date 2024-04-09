@@ -18,14 +18,11 @@ class Router {
         $this->page = $this->page == '' ? 'home' : $this->page;
 
         $this->action = isset($_POST['action']) ? $_POST['action'] : null;
-        //echo "ACTION: [".$this->action."]";
         $this->view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
 
         if ($this->action == 'login') {
-            //echo "LOGIN";
             $this->login();
         } else {
-            //echo "TOKEN";
             $this->checkAdmin();
         }
     }
@@ -84,49 +81,52 @@ class DB {
     protected function initDatabase() {
         $query = $this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='pages';");
         $result = $query->fetch();
-        //\var_dump($result);
+
         if (!$result) {
             $result = $this->db->exec(
                 "CREATE TABLE pages ("
-                    ."slug VARCHAR(250) PRIMARY KEY, "
+                    ."id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    ."slug VARCHAR(250) NOT NULL, "
                     ."title VARCHAR(250), "
+                    ."author VARCHAR(120), "
                     ."content TEXT, "
-                    ."contentType VARCHAR(16), "
+                    ."content_type VARCHAR(16), "
                     ."access VARCHAR(16) DEFAULT 'public', "
                     ."updated_at TIMESTAMP, "
                     ."published_at TIMESTAMP, "
                     ."created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL"
                 .")");
-
-            $this->insertPage("home", "<h1>Hello</h1><p>This is homepage</p>", "Home page", "public", "html", date("Y-m-d\TH:i"));
+            $result = $this->db->exec("CREATE UNIQUE INDEX idx_pages_slug ON pages (slug)");
+            $this->insertPage("home", "<h1>Hello</h1><p>This is homepage</p>", "Home page", "Admin", "public", "html", date("Y-m-d\TH:i"));
         }
     }
 
-    public function savePage($slug, $content, $title = '', $access = 'public', $contentType = 'html', $publishDate = null) {
-        $page = $this->getPage($slug);
-        if ($page) {
-            return $this->updatePage($slug, $content, $title, $access, $contentType, $publishDate);
+    public function savePage($id, $slug, $content, $title = '', $author = null, $access = 'public', $contentType = 'html', $publishDate = null) {
+        if ($id != null && $id !== '') {
+            $this->updatePage($slug, $content, $title, $author, $access, $contentType, $publishDate);
         } else {
-            return $this->insertPage($slug, $content, $title, $access, $contentType, $publishDate);
+            $this->insertPage($slug, $content, $title, $author, $access, $contentType, $publishDate);
         }
+        return $this->getPage($slug);
     }
 
-    public function updatePage($slug, $content, $title = '', $access = 'public', $contentType = 'html', $publishDate = null) {
+    public function updatePage($slug, $content, $title = '', $author = null, $access = 'public', $contentType = 'html', $publishDate = null) {
             $query = $this->db->prepare("UPDATE pages SET "
-                                            ."content = :content, title = :title, contentType = :contentType, "
+                                            ."content = :content, title = :title, author = :author, content_type = :content_type, "
                                             ."published_at = :published_at, updated_at = :updated_at, access = :access "
                                             ."WHERE slug = :slug");
-            $query->execute([':slug' => $slug, ':content' => $content, ':access' => $access, ':updated_at' => date("Y-m-d\TH:i"),
-                            ':title' => $title, ':contentType' => $contentType, ':published_at' => $publishDate]);
+            $query->execute([':slug' => $slug, ':content' => $content, ':author' => $author, ':access' => $access,
+                             ':updated_at' => date("Y-m-d\TH:i"), ':title' => $title, ':content_type' => $contentType,
+                             ':published_at' => $publishDate]);
             $page = $query->fetchObject();
             return $page;
     }
 
-    public function insertPage($slug, $content, $title = '', $access = 'public', $contentType = 'html', $publishDate = null) {
-            $query = $this->db->prepare("INSERT INTO pages (slug, content, title, access, contentType, created_at, updated_at, published_at) ".
-                        "VALUES (:slug, :content, :title, :access, :contentType, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :publishDate)");
-            $query->execute([':slug' => $slug, 'content' => $content, ':title' => $title, ':access' => $access,
-                                ':contentType' => $contentType, ':publishDate' => $publishDate]);
+    public function insertPage($slug, $content, $title = '', $author = null, $access = 'public', $contentType = 'html', $publishDate = null) {
+            $query = $this->db->prepare("INSERT INTO pages (slug, content, title, author, access, content_type, created_at, updated_at, published_at) "
+                                ."VALUES (:slug, :content, :title, :author, :access, :content_type, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :published_at)");
+            $query->execute([':slug' => $slug, 'content' => $content, ':title' => $title, ':author' => $author,
+                             ':access' => $access, ':content_type' => $contentType, ':published_at' => $publishDate]);
             $page = $query->fetchObject();
             return $page;
     }
@@ -142,11 +142,13 @@ class DB {
             \error_log('Error getting page with slug '.$slug, $e);
         }
     }
+
     public function getPagesCount() {
         $query = $this->db->prepare("SELECT count(slug) as count FROM pages");
         $query->execute();
         return $query->fetchObject();
     }
+
     public function getPages($pageNo = 0, $pageSize = 10) {
         try {
             $query = $this->db->prepare("SELECT * FROM pages ORDER BY created_at DESC LIMIT :pageStart, :pageSize");
@@ -172,44 +174,24 @@ class JWT {
 
     protected $key;
     protected $keys = [];
-    protected $algo = 'HS512';
+    protected $alg = 'HS512';
     protected $maxAge = 9990;
 
-    /**
-     * Constructor.
-     *
-     * @param string|resource $key    The signature key. For RS* it should be file path or resource of private key.
-     * @param string          $algo   The algorithm to sign/verify the token.
-     * @param int             $maxAge The TTL of token to be used to determine expiry if `iat` claim is present.
-     *                                This is also used to provide default `exp` claim in case it is missing.
-     */
-    public function __construct($key, string $algo = 'HS512', int $maxAge = 9990) {
-
-        if (\is_array($key)) {
-            $this->registerKeys($key);
-            $key = \reset($key); // use first one!
-        }
-
-        $this->key        = $key;
-        $this->algo       = $algo;
-        $this->maxAge     = $maxAge;
-    }
-
-    public function registerKeys(array $keys): self {
-        $this->keys = \array_merge($this->keys, $keys);
-
-        return $this;
+    public function __construct($key, string $alg = 'HS512', int $maxAge = 9990) {
+        $this->key = $key;
+        $this->alg = $alg;
+        $this->maxAge = $maxAge;
     }
 
     public function encode(array $payload, array $header = []): string {
-        $header = ['typ' => 'JWT', 'alg' => $this->algo] + $header;
+        $header = ['typ' => 'JWT', 'alg' => $this->alg] + $header;
 
-        if (!isset($payload['iat']) && !isset($payload['exp'])) {
+        if (!isset($payload['exp'])) {
             $payload['exp'] = \time() + $this->maxAge;
         }
 
-        $header    = $this->urlSafeEncode($header);
-        $payload   = $this->urlSafeEncode($payload);
+        $header = $this->urlSafeEncode($header);
+        $payload = $this->urlSafeEncode($payload);
         $signature = $this->urlSafeEncode($this->sign($header . '.' . $payload));
 
         return $header . '.' . $payload . '.' . $signature;
@@ -237,36 +219,12 @@ class JWT {
     }
 
     protected function sign(string $input): string {
-        // HMAC SHA.
-        if (\substr($this->algo, 0, 2) === 'HS') {
-            return \hash_hmac($this->algorithms[$this->algo], $input, $this->key, true);
-        }
-
-        \openssl_sign($input, $signature, $this->key, $this->algorithms[$this->algo]);
-
-        return $signature;
+        return \hash_hmac($this->algorithms[$this->alg], $input, $this->key, true);
     }
 
     protected function verify(string $input, string $signature): bool {
-        $algo = $this->algorithms[$this->algo];
-
-        // HMAC SHA.
-        if (\substr($this->algo, 0, 2) === 'HS') {
-            return \hash_equals($this->urlSafeEncode(\hash_hmac($algo, $input, $this->key, true)), $signature);
-        }
-
-        $pubKey = \openssl_pkey_get_details($this->key)['key'];
-
-        return \openssl_verify($input, $this->urlSafeDecode($signature, false), $pubKey, $algo) === 1;
-    }
-
-    protected function urlSafeEncode($data): string {
-        if (\is_array($data)) {
-            $data = \json_encode($data, \JSON_UNESCAPED_SLASHES);
-            $this->validateLastJson();
-        }
-
-        return \rtrim(\strtr(\base64_encode($data), '+/', '-_'), '=');
+        $alg = $this->algorithms[$this->alg];
+        return \hash_equals($this->urlSafeEncode(\hash_hmac($alg, $input, $this->key, true)), $signature);
     }
 
     protected function validateExpiry(array $payload) {
@@ -280,6 +238,15 @@ class JWT {
             return;
         }
         throw new \Exception('JSON failed: ' . \json_last_error_msg());
+    }
+
+    protected function urlSafeEncode($data): string {
+        if (\is_array($data)) {
+            $data = \json_encode($data, \JSON_UNESCAPED_SLASHES);
+            $this->validateLastJson();
+        }
+
+        return \rtrim(\strtr(\base64_encode($data), '+/', '-_'), '=');
     }
 
     protected function urlSafeDecode($data, bool $asJson = true) {

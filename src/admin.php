@@ -1,14 +1,27 @@
 <?php
     $isAdmin = $router->isAdmin();
-
+    $error = false;
     if ($isAdmin) {
-        if (isset($_POST['slug'])) {
-            $page = $db->savePage($_POST['slug'], $_POST['content'], $_POST['title'], $_POST['access'], $_POST['contentType'], $_POST['publishDate']);
-        }
-        if (isset($_GET['slug'])) {
+        if (isset($_POST['slug']) || isset($_POST['content'])) {
+            try {
+                if (!isset($_POST['slug']) || $_POST['slug'] === '' || ctype_space($_POST['slug'])) {
+                    $error = "Error: slug is required.";
+                } else {
+                    $page = $db->savePage($_POST['id'], $_POST['slug'], $_POST['content'], $_POST['title'],
+                                $_POST['author'], $_POST['access'], $_POST['content_type'], $_POST['published_at']);
+                }
+            } catch(Exception $e) {
+                $error = "Error: ".$e->getMessage();
+            }
+            if ($error) {
+                $page = (object)['id' => $_POST['id'], 'slug' => $_POST['slug'], 'content' => $_POST['content'],
+                              'title' => $_POST['title'], 'author' => $_POST['author'], 'access' => $_POST['access'],
+                              'content_type' => $_POST['content_type'], 'published_at' => $_POST['published_at']];
+            }
+        } elseif (isset($_GET['slug'])) {
             if ($_GET['slug'] == '_new') {
-                $page = (object)['slug' => '', 'title' => '', 'content' => '', 'contentType' => 'html',
-                 'access' => 'public', 'published_at' => date("Y-m-d\TH:i")];
+                $page = (object)['id' => '', 'slug' => '', 'title' => '', 'content' => '', 'content_type' => 'html',
+                 'author' => '', 'access' => 'public', 'published_at' => date("Y-m-d\TH:i")];
             } else {
                 $page = $db->getPage($_GET['slug']);
             }
@@ -65,7 +78,7 @@
             }
         ?>
         <h3> Pages: </h3>
-        <a href="admin?view=page&slug=_new">New page</a>
+        <a href="admin?view=page&slug=_new" class="btn">New page</a>
         <ol>
         <?php
         $pageNo = isset($_GET['pno']) ? ($_GET['pno'] - 1) : 0;
@@ -88,8 +101,13 @@
         $previous = $previousPageNo < 1 ? "" : "<a href='?pno=$previousPageNo&pco=$itemsPerPage'>[$previousPageNo]</a>";
         echo "<div class='pages'> $previous [<a>$currentPageNo</a>/<a>$totalPages</a>] $next </div>";
     } ?>
-    <?php if ($router->view() == 'page') { ?>
-    <form method="post" action="admin" class="form">
+    <?php if ($router->view() == 'page') {
+        if ($error) {
+            echo '<div><alert class="warn">'.$error.'</alert></div>';
+        }
+     ?>
+    <form method="post" action="admin?view=page" class="form">
+        <input type="hidden" name="id" value="<?php echo $page->id; ?>"/>
         <div>
             <label for="slug">Slug:</label>
             <input id="slug" type="text" name="slug" placeholder="slug" value="<?php echo $page->slug; ?>"/>
@@ -99,11 +117,15 @@
             <input id="title" type="text" name="title" placeholder="title" value="<?php echo $page->title; ?>"/>
         </div>
         <div>
+            <label for="author">Author:</label>
+            <input id="author" type="text" name="author" placeholder="author" value="<?php echo $page->author; ?>"/>
+        </div>
+        <div>
             <label for="contentType">Content type:</label>
-            <select id="contentType" name="contentType">
-                <option value="html" <?php echo ($page->contentType=='html') ? 'selected' : '' ; ?>>HTML</option>
-                <option value="php" <?php echo ($page->contentType=='php') ? 'selected' : '' ; ?>>PHP</option>
-                <option value="text" <?php echo ($page->contentType=='text') ? 'selected' : '' ; ?>>TEXT</option>
+            <select id="contentType" name="content_type">
+                <option value="html" <?php echo ($page->content_type=='html') ? 'selected' : '' ; ?>>HTML</option>
+                <option value="php" <?php echo ($page->content_type=='php') ? 'selected' : '' ; ?>>PHP</option>
+                <option value="text" <?php echo ($page->content_type=='text') ? 'selected' : '' ; ?>>TEXT</option>
             </select>
         </div>
         <div>
@@ -115,7 +137,7 @@
         </div>
         <div>
             <label for="publishDate">Publish date:</label>
-            <input id="publishDate" type="datetime-local" name="publishDate" value="<?php echo $page->published_at; ?>"/>
+            <input id="publishDate" type="datetime-local" name="published_at" value="<?php echo $page->published_at; ?>"/>
         </div>
         <div class="textarea">
             <label for="content">Content:</label>
