@@ -31,7 +31,7 @@ class Router {
     }
 
     public function isAdminRoute() {
-        return $this->route() == 'admin';
+        return $this->route() === $this->config->adminPath;
     }
 
     public function view() {
@@ -129,6 +129,13 @@ class DB {
                              ':access' => $access, ':content_type' => $contentType, ':published_at' => $publishDate]);
             $page = $query->fetchObject();
             return $page;
+    }
+
+    public function deletePage($slug) {
+            $query = $this->db->prepare("DELETE FROM pages WHERE slug = :slug");
+            $query->execute([':slug' => $slug]);
+            $result = $query->fetchObject();
+            return $result;
     }
 
     public function getPage($slug) {

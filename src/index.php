@@ -3,7 +3,8 @@
         'jwtKey' => '123450099joKo1',
         'dbPath' => 'database.sqlite',
         'adminPassword' => 'admin',
-        'adminUsername' => 'admin'
+        'adminUsername' => 'admin',
+        'adminPath' => 'admin'
     ];
 
     require 'blite.php';
@@ -18,7 +19,7 @@
         $page = $db->getPage($router->route());
         $public = $page && $page->access === 'public';
         $noAccess = !$public && !$router->isAdmin();
-        $notPublished = is_null($page->published_at) || empty($page->published_at)
+        $notPublished = !$page || is_null($page->published_at) || empty($page->published_at)
                             || (strtotime($page->published_at) - strtotime(date("Y-m-d\TH:i")) > 0);
         if (!$page || $noAccess || $notPublished) {
             $page = (object)['title' => '404 Not found', 'content_type' => 'txt',
@@ -44,7 +45,7 @@
             <a href="" class="logo">bLite</a>
         </div>
         <div class="right">
-            <?php if ($router->isAdmin()) echo '<a href="admin">Admin</a>' ?>
+            <?php if ($router->isAdmin()) echo '<a href="'.$config->adminPath.'">Admin</a>' ?>
             <a href="home" class="active">Home</a>
         </div>
     </nav>

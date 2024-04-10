@@ -1,7 +1,9 @@
 <?php
     $isAdmin = $router->isAdmin();
     $error = false;
+    $confirmation = false;
     if ($isAdmin) {
+
         if (isset($_POST['slug']) || isset($_POST['content'])) {
             try {
                 if (!isset($_POST['slug']) || $_POST['slug'] === '' || ctype_space($_POST['slug'])) {
@@ -24,6 +26,10 @@
                  'author' => '', 'access' => 'public', 'published_at' => date("Y-m-d\TH:i")];
             } else {
                 $page = $db->getPage($_GET['slug']);
+            }
+            if (isset($_GET['action']) && $_GET['action'] === 'delete' && $page) {
+                $db->deletePage($page->slug);
+                $confirmation = 'Page deleted: '.$page->slug;
             }
         }
     }
@@ -53,7 +59,7 @@
     <?php if (!$isAdmin) { ?>
         <div class="modal">
             <div class="box form">
-            <form method="post" action="admin">
+            <form method="post" action="<?php echo $config->adminPath; ?>">
                 <input type="hidden" name="action" value="login"/>
                 <div>
                     <label for="username">Username:</label>
@@ -71,25 +77,31 @@
             </div>
         </div>
     <?php die(); } ?>
-
+    <?php if ($confirmation) {
+        echo '<alert class="info">'.$confirmation.'</alert>';
+    } ?>
     <?php if ($router->view() == 'dashboard') {
-            if ($config->adminUsername == 'admin' || $config->adminPassword == 'admin') {
-                echo '<alert class="danger">For your security, please change the default admin username and password (in index.php).</alert>';
+            if ($config->adminUsername == 'admin' || $config->adminPassword == 'admin' || $config->adminPath == 'admin') {
+                echo '<alert class="danger">For your security, please change the default admin username, password and path (in index.php).</alert>';
             }
         ?>
-        <h3> Pages: </h3>
-        <a href="admin?view=page&slug=_new" class="btn">New page</a>
-        <ol>
+        <h3> Pages </h3>
+
+        <div class="lines">
+            <div><a href="<?php echo $config->adminPath; ?>?view=page&slug=_new" class="btn">New page</a></div>
         <?php
         $pageNo = isset($_GET['pno']) ? ($_GET['pno'] - 1) : 0;
-        $itemsPerPage = isset($_GET['pco']) ? $_GET['pco'] : 10;
+        $itemsPerPage = isset($_GET['pco']) ? $_GET['pco'] : 20;
         $pages = $db->getPages($pageNo, $itemsPerPage);
 
         foreach($pages as $page) {
-            echo "<li><a href='$page->slug'>$page->title</a> [<a href='admin?view=page&slug=$page->slug'>Edit</a>]</li>";
+            echo "<div><a href='$page->slug' class='btn'>View</a> <a href='$config->adminPath?action=delete&slug=$page->slug' class='btn'>Delete</a> "
+            ."<a href='$config->adminPath?view=page&slug=$page->slug' class='btn'>Edit</a> "
+            ."<span class='btn dt'>".((is_null($page->published_at) || empty($page->published_at)) ? "Not published" : date("Y-m-d H:i:s", strtotime($page->published_at)))."</span>"
+            ." <a href='$config->adminPath?view=page&slug=$page->slug' class='btn pt'>$page->id | $page->title</a></div>";
         }
         ?>
-        </ol>
+        </div>
     <?php
         $pagesCount = $db->getPagesCount()->count;
 
@@ -106,7 +118,7 @@
             echo '<div><alert class="warn">'.$error.'</alert></div>';
         }
      ?>
-    <form method="post" action="admin?view=page" class="form">
+    <form method="post" action="<?php echo $config->adminPath; ?>?view=page" class="form">
         <input type="hidden" name="id" value="<?php echo $page->id; ?>"/>
         <div>
             <label for="slug">Slug:</label>
@@ -146,7 +158,7 @@
         <div>
             <label for="savePage">&nbsp;</label>
             <button id="savePage" type="submit">Save page</button>
-            <button id="cancel" type="cancel" onclick="event.preventDefault();window.location.href='admin';return false;">Cancel</button>
+            <button id="cancel" type="cancel" onclick="event.preventDefault();window.location.href='<?php echo $config->adminPath; ?>';return false;">Cancel</button>
         </div>
     </form>
     <?php } ?>
