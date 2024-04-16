@@ -2,6 +2,8 @@
     $config = (object)[
         'jwtKey' => '123450099joKo1',
         'dbPath' => 'database.sqlite',
+        'filesPath' => 'up',
+        'filesDailyFolders' => false,
         'adminPassword' => 'admin',
         'adminUsername' => 'admin',
         'adminPath' => 'admin'

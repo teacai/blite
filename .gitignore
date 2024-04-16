@@ -3,3 +3,4 @@
 # For local dev
 /data
 *.sqlite
+up/

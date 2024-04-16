@@ -1,10 +1,19 @@
 <?php
     $isAdmin = $router->isAdmin();
+    $files = new BLite\Files($config);
     $error = false;
     $confirmation = false;
     if ($isAdmin) {
 
-        if (isset($_POST['slug']) || isset($_POST['content'])) {
+        if (isset($_POST['action']) && isset($_POST['file'])) {
+            if ($_POST['action'] === 'Delete') {
+                $fileConfirmation = $files->deleteFiles($_POST['file']);
+            } elseif ($_POST['action'] === 'Rename') {
+                $fileConfirmation = $files->renameFile($_POST['file'], $_POST['newFile']);
+            }
+        } elseif (isset($_GET['action']) && $_GET['action'] === 'upload' && isset($_FILES['files'])) {
+            $uploadedFiles = $files->saveUploadedFiles();
+        } elseif (isset($_POST['slug']) || isset($_POST['content'])) {
             try {
                 if (!isset($_POST['slug']) || $_POST['slug'] === '' || ctype_space($_POST['slug'])) {
                     $error = "Error: slug is required.";
@@ -43,6 +52,10 @@
     <title>bLite | Admin</title>
     <style>
         <?php include "index.inline.css"; ?>
+        .fw {
+            width: calc(100% - 10rem);
+            padding: 0.35rem;
+        }
     </style>
 </head>
 <body>
@@ -112,7 +125,43 @@
         $next = $nextPageNo > $totalPages ? "" : "<a href='?pno=$nextPageNo&pco=$itemsPerPage'>[$nextPageNo]</a>";
         $previous = $previousPageNo < 1 ? "" : "<a href='?pno=$previousPageNo&pco=$itemsPerPage'>[$previousPageNo]</a>";
         echo "<div class='pages'> $previous [<a>$currentPageNo</a>/<a>$totalPages</a>] $next </div>";
-    } ?>
+    ?>
+    <hr/>
+    <hr/>
+    <hr/>
+    <h3> Files </h3>
+    <div class="lines">
+        <?php
+            if (isset($uploadedFiles)) {
+                echo "<div><pre>Uploaded files:\n";
+                foreach($uploadedFiles as $f) echo $f."\n";
+                echo "</pre></div>";
+            }
+            if (isset($fileConfirmation)) {
+                echo "<div><pre>$fileConfirmation</pre></div>";
+            }
+        ?>
+
+        <div>
+            <form action="<?php echo $config->adminPath; ?>?action=upload" class="form" method="post" enctype="multipart/form-data">
+                Files: <input name="files[]" type="file" multiple />
+                Directory: <input name="files[]" type="file" webkitdirectory multiple />
+                <input type="submit" class="btn" value="Upload" />
+            </form>
+        </div>
+
+        <?php
+            $myFiles = $files->listFiles();
+            foreach($myFiles as $f) {
+                echo "<form action='$config->adminPath' method='post'>"
+                        ."<div class=''><input class='btn' type='submit' name='action' value='Delete'/> "
+                        ."<input class='btn' type='submit' name='action' value='Rename'/> "
+                        ."<input class='fw' type='text' name='newFile' value='$f'/></div>".
+                        "<input type='hidden' name='file' value='$f'/></form>";
+            }
+        ?>
+    </div>
+    <?php } ?>
     <?php if ($router->view() == 'page') {
         if ($error) {
             echo '<div><alert class="warn">'.$error.'</alert></div>';
@@ -120,6 +169,11 @@
      ?>
     <form method="post" action="<?php echo $config->adminPath; ?>?view=page" class="form">
         <input type="hidden" name="id" value="<?php echo $page->id; ?>"/>
+        <div>
+            <label for="savePage">&nbsp;</label>
+            <button id="savePage" type="submit">Save page</button>
+            <button id="cancel" type="cancel" onclick="event.preventDefault();window.location.href='<?php echo $config->adminPath; ?>';return false;">Cancel</button>
+        </div>
         <div>
             <label for="slug">Slug:</label>
             <input id="slug" type="text" name="slug" placeholder="slug" value="<?php echo $page->slug; ?>"/>
@@ -154,11 +208,6 @@
         <div class="textarea">
             <label for="content">Content:</label>
             <textarea id="content" name="content"><?php echo $page->content; ?></textarea>
-        </div>
-        <div>
-            <label for="savePage">&nbsp;</label>
-            <button id="savePage" type="submit">Save page</button>
-            <button id="cancel" type="cancel" onclick="event.preventDefault();window.location.href='<?php echo $config->adminPath; ?>';return false;">Cancel</button>
         </div>
     </form>
     <?php } ?>

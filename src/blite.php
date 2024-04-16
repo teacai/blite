@@ -170,6 +170,112 @@ class DB {
 
 }
 
+class Files {
+    protected $config;
+
+    public function __construct($config) {
+        $this->config = $config;
+    }
+
+    public function saveUploadedFiles() {
+        //var_dump($_FILES['files']);
+        $count = count($_FILES['files']['name']);
+        //echo "Found $count files to upload";
+        $result = [];
+        for($i=0 ; $i < $count ; $i++) {
+          $tmpFilePath = $_FILES['files']['tmp_name'][$i];
+          if ($tmpFilePath != ""){
+            $newFile = $this->saveFile($tmpFilePath, $_FILES['files']['name'][$i], $_FILES['files']['full_path'][$i]);
+            array_push($result, $newFile);
+          }
+        }
+        return $result;
+    }
+
+    public function renameFile($oldName, $newName) {
+        if (\file_exists($oldName) && \is_writable($oldName)
+                && $this->fileInStorage($oldName) && $this->fileInStorage($newName)) {
+            $parent = \dirname($newName);
+            if (!is_dir($parent) && !mkdir($parent, 01777, true)) {
+                return "Cannot store to folder $parent";
+            }
+            if (\rename($oldName, $newName)) {
+                return "File was renamed to $newName.";
+            } else {
+                return "Error renaming the file $oldName";
+            }
+        } else {
+            return "File $oldName does not exist or is not writable.";
+        }
+    }
+
+    public function deleteFiles($filename) {
+        if (\file_exists($filename) && \is_writable($filename)) {
+            if ($this->fileInStorage($filename) && \unlink($filename)) {
+                return "File $filename has been deleted successfully.";
+            } else {
+                return "Error deleting the file $filename";
+            }
+        } else {
+            return "File $filename does not exist or is not writable.";
+        }
+    }
+
+    protected function fileInStorage($filename) {
+        return strpos($filename, $this->config->filesPath) === 0 && strpos($filename, '/../') === false;
+    }
+
+    public function listFiles() {
+        $pageNo = isset($_GET['fno']) ? ($_GET['fno'] - 1) : 0;
+        $itemsPerPage = isset($_GET['fco']) ? $_GET['fco'] : 20;
+
+        $files = $this->scanFiles($this->config->filesPath);
+
+        return array_slice($files, $pageNo * $itemsPerPage, $itemsPerPage);
+    }
+
+    public function saveFile($tmpFilePath, $fileName, $fullFilePath) {
+        if ($fileName !== $fullFilePath) {
+            $newFilePath = $this->getStoragePath(dirname($fullFilePath)).'/'.$fileName;
+        } else {
+            $newFilePath = $this->getStoragePath().'/'.$fileName;
+        }
+        if($this->fileInStorage($newFilePath) && move_uploaded_file($tmpFilePath, $newFilePath)) {
+            \chmod($newFilePath, 0644);
+            return $newFilePath;
+        }
+        throw new \Exception('Failed to save file: '.$fileName);
+    }
+
+    protected function scanFiles($path) {
+        $files = \glob($path."/*", \GLOB_NOSORT);
+        $dirs = \glob($path."/*", \GLOB_ONLYDIR|\GLOB_NOSORT);
+        $files = \array_diff($files, $dirs);
+
+        foreach($dirs as $dir) {
+            $sub = $this->scanFiles($dir);
+            $files = \array_merge($files, $sub);
+        }
+        return $files;
+    }
+
+    protected function getStoragePath($extra = '') {
+        $path = $this->config->filesPath;
+        if ($this->config->filesDailyFolders) {
+            $year = base_convert(abs(date('y') - 24) % 36, 10, 36);
+            $month = base_convert(date('m'), 10, 36);
+            $day = base_convert(date('d'), 10, 36);
+            $path = $path.'/'.$year.$month.$day;
+        }
+        if ($extra !== '') {
+            $path = $path.'/'.$extra;
+        }
+        if (is_dir($path) || mkdir($path, 01777, true)) {
+            return $path;
+        }
+        throw new \Exception('Failed to create storage path: '.$path);
+    }
+}
 
 class JWT {
 
