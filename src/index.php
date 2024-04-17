@@ -6,7 +6,8 @@
         'filesDailyFolders' => false,
         'adminPassword' => 'admin',
         'adminUsername' => 'admin',
-        'adminPath' => 'admin'
+        'adminPath' => 'admin',
+        'publicPagesPath' => 'posts'
     ];
 
     require 'blite.php';
@@ -17,6 +18,8 @@
     if ($router->isAdminRoute()) {
         require 'admin.php';
         exit(0);
+    } else if ($router->isPublicPagesRoute()) {
+        $pages = $db->getPublicPages();
     } else {
         $page = $db->getPage($router->route());
         $public = $page && $page->access === 'public';
@@ -36,7 +39,7 @@
 <head>
     <meta charset=utf-8>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?php echo 'bLite | '.$page->title; ?></title>
+    <title><?php echo 'bLite | '.(isset($page) ? $page->title : 'Posts'); ?></title>
     <style>
         <?php include 'index.inline.css'; ?>
     </style>
@@ -48,17 +51,28 @@
         </div>
         <div class="right">
             <?php if ($router->isAdmin()) echo '<a href="'.$config->adminPath.'">Admin</a>' ?>
+            <?php echo '<a href="'.$config->publicPagesPath.'">Posts</a>' ?>
             <a href="home" class="active">Home</a>
         </div>
     </nav>
     <main>
     <?php
-    if ( $page->content_type == 'php' ) {
-        eval( $page->content );
-    } elseif ( $page->content_type == 'html' ) {
-        echo $page->content;
-    } else {
-        echo "<pre>".$page->content."</pre>";
+    if (isset($page)) {
+        if ( $page->content_type == 'php' ) {
+            eval( $page->content );
+        } elseif ( $page->content_type == 'html' ) {
+            echo $page->content;
+        } else {
+            echo "<pre>".$page->content."</pre>";
+        }
+    }
+    if (isset($pages)) {
+        echo "<h3>Pages</h3>";
+        foreach($pages as $page) {
+            $pub = str_replace('T', ' ', $page->published_at);
+            $author = $page->author ? '('.$page->author.')' : '';
+            echo "<div><a href='$page->slug'>[$pub] <strong>$page->title</strong> $author</a></div>";
+        }
     }
     ?>
     </main>

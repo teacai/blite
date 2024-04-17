@@ -124,6 +124,7 @@
             margin: 0.1rem 0.2rem;
             display: inline-block;
             min-height: 1rem;
+            font-size: 1rem;
         }
         .form div input, .form div label,
         .form div textarea, .form div select {
@@ -291,6 +292,7 @@
             <button id="savePage" type="submit" class="btn">Save page</button>
             <button id="cancel" type="cancel" class="btn"
                 onclick="event.preventDefault();window.location.href='<?php echo $config->adminPath; ?>';return false;">Cancel</button>
+            <a class="btn" href="#" onclick="window.location.href=document.querySelector('#slug').value">View</a>
         </div>
         <div>
             <label for="slug">Slug:</label>

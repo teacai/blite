@@ -11,6 +11,10 @@ php_value post_max_size 102M
 
   RewriteBase /
 
+  # Deny access for SQLite db file
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^.+\.(sqlite3|sqlite)$ - [F,L,NC]
+
   # Redirect Trailing Slashes If Not A Folder...
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^(.*)/$ /$1 [L,R=301]

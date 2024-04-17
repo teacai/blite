@@ -34,6 +34,10 @@ class Router {
         return $this->route() === $this->config->adminPath;
     }
 
+    public function isPublicPagesRoute() {
+        return $this->route() === $this->config->publicPagesPath;
+    }
+
     public function view() {
         return $this->view;
     }
@@ -167,7 +171,20 @@ class DB {
             \error_log('Error getting page with slug '.$slug, $e);
         }
     }
+    public function getPublicPages($pageNo = 0, $pageSize = 10) {
+        try {
+            $query = $this->db->prepare(
+                "SELECT slug, title, author, published_at FROM pages "
+                    ."WHERE access = 'public' AND published_at < CURRENT_TIMESTAMP "
+                    ."ORDER BY published_at DESC LIMIT :pageStart, :pageSize");
+            $query->execute([':pageStart' => $pageNo * $pageSize, ':pageSize' => $pageSize]);
+            $pages = $query->fetchAll(\PDO::FETCH_CLASS);
 
+            return $pages;
+        } catch(\Exception $e) {
+            \error_log('Error getting page with slug '.$slug, $e);
+        }
+    }
 }
 
 class Files {
@@ -178,9 +195,7 @@ class Files {
     }
 
     public function saveUploadedFiles() {
-        //var_dump($_FILES['files']);
         $count = count($_FILES['files']['name']);
-        //echo "Found $count files to upload";
         $result = [];
         for($i=0 ; $i < $count ; $i++) {
           $tmpFilePath = $_FILES['files']['tmp_name'][$i];
