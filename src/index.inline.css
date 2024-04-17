@@ -26,6 +26,9 @@ nav a {
 nav a:hover {
     color: #aaa;
 }
+nav .active {
+    color: #ccfa;
+}
 img {
     max-width: 100%;
 }
@@ -56,80 +59,4 @@ alert {
 }
 .right {
     float: right;
-}
-.modal {
-    position: relative;
-    background-color: #fff;
-}
-.modal .box {
-    padding: 0.5rem;
-    position: absolute;
-    margin: auto;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    left: 0;
-    max-width: 30rem;
-    max-height: 12rem;
-    width: 99%;
-    height: 99%;
-}
-.form div {
-    margin: 0.1rem 0.3rem;
-}
-.form div * {
-    margin: 0.1rem 0.2rem;
-    display: inline-block;
-    min-height: 1rem;
-}
-.form div input, .form div label,
-.form div textarea, .form div select {
-    width: calc(100% - 0.4rem);
-}
-.form div.textarea, .form textarea {
-    height: 80%
-}
-.btn {
-    display: inline-block;
-    padding: 0.4rem 0.8rem;
-    border: 1px solid #333;
-    text-decoration: none;
-}
-.lines {
-    display: block;
-    width: 100%;
-    padding: 0.2rem 0;
-}
-.lines > * {
-    padding: 0.2rem 0;
-    margin: 0 0.2rem 0.4rem 0;
-    border-bottom: 1px dashed #333;
-}
-.lines > *:hover {
-    background-color: #eeee;
-}
-.dt {
-    min-width: 10.5rem;
-    min-height: 2rem;
-}
-.pt {
-    width: 100%;
-    margin-top:0.2rem;
-}
-
-@media screen and (min-width: 718px) {
-    .form div input, .form div select {
-        width: calc(60% - 0.6rem);
-    }
-    .form div label {
-        width: calc(40% - 0.6rem);
-        text-align: right;
-    }
-    .lines > * {
-         border-width: 0;
-    }
-    .pt {
-        margin-top: 0;
-        width: calc(100% - 23.2rem);
-    }
 }

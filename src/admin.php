@@ -1,18 +1,18 @@
 <?php
     $isAdmin = $router->isAdmin();
-    $files = new BLite\Files($config);
-    $error = false;
-    $confirmation = false;
     if ($isAdmin) {
+        $files = new BLite\Files($config);
 
         if (isset($_POST['action']) && isset($_POST['file'])) {
             if ($_POST['action'] === 'Delete') {
-                $fileConfirmation = $files->deleteFiles($_POST['file']);
+                $confirmation = $files->deleteFiles($_POST['file']);
             } elseif ($_POST['action'] === 'Rename') {
-                $fileConfirmation = $files->renameFile($_POST['file'], $_POST['newFile']);
+                $confirmation = $files->renameFile($_POST['file'], $_POST['newFile']);
             }
         } elseif (isset($_GET['action']) && $_GET['action'] === 'upload' && isset($_FILES['files'])) {
             $uploadedFiles = $files->saveUploadedFiles();
+            $confirmation = '<div>Files uploaded:</div>';
+            foreach($uploadedFiles as $f) $confirmation = $confirmation."<div>$f</div>";
         } elseif (isset($_POST['slug']) || isset($_POST['content'])) {
             try {
                 if (!isset($_POST['slug']) || $_POST['slug'] === '' || ctype_space($_POST['slug'])) {
@@ -24,7 +24,7 @@
             } catch(Exception $e) {
                 $error = "Error: ".$e->getMessage();
             }
-            if ($error) {
+            if (isset($error)) {
                 $page = (object)['id' => $_POST['id'], 'slug' => $_POST['slug'], 'content' => $_POST['content'],
                               'title' => $_POST['title'], 'author' => $_POST['author'], 'access' => $_POST['access'],
                               'content_type' => $_POST['content_type'], 'published_at' => $_POST['published_at']];
@@ -52,9 +52,137 @@
     <title>bLite | Admin</title>
     <style>
         <?php include "index.inline.css"; ?>
+        * { box-sizing: border-box; }
+        html, body, main, .modal, form {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        main {
+            padding: 0.5rem;
+            overflow: auto;
+        }
+        nav {
+            background-color: #333;
+            overflow: auto;
+            min-height: 2rem;
+            width: 100%;
+        }
+        nav a {
+            display: inline-block;
+            padding: 0.7rem 1.1rem;
+            text-decoration: none;
+            color: #fff;
+        }
+        nav a:hover { color: #ccf; }
+        nav .active { color: #ccfa; }
+        img { max-width: 100%; }
+        alert {
+            display: block;
+            margin: 1rem 4rem;
+            padding: 1rem;
+            border: 1px solid #333;
+        }
+        .danger {
+            border-color: #aa3333;
+            color: #aa3333;
+        }
+        .warn {
+            border-color: #ffaa33;
+            color: #ffaa33;
+        }
+        .info {
+            border-color: #3333aa;
+            color: #3333aa;
+        }
+        .success {
+            border-color: #33aa33;
+            color: #33aa33;
+        }
+        .left { float: left; }
+        .right { float: right; }
+        .modal {
+            position: relative;
+            background-color: #fff;
+        }
+        .modal .box {
+            padding: 0.5rem;
+            position: absolute;
+            margin: auto;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            left: 0;
+            max-width: 30rem;
+            max-height: 12rem;
+            width: 99%;
+            height: 99%;
+        }
+        .form div { margin: 0.1rem 0.3rem; }
+        .form div * {
+            margin: 0.1rem 0.2rem;
+            display: inline-block;
+            min-height: 1rem;
+        }
+        .form div input, .form div label,
+        .form div textarea, .form div select {
+            width: calc(100% - 0.4rem);
+        }
+        .form div.textarea, .form textarea {
+            height: 80%
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #333;
+            text-decoration: none;
+        }
+        .lines {
+            display: block;
+            width: 100%;
+            padding: 0.2rem 0;
+        }
+        .lines > * {
+            padding: 0.2rem 0;
+            margin: 0 0.2rem 0.4rem 0;
+            border-bottom: 1px dashed #333;
+        }
+        .lines > *:hover {
+            background-color: #eeee;
+        }
+        .dt {
+            min-width: 10.5rem;
+            min-height: 2rem;
+        }
+        .pt {
+            width: 100%;
+            margin-top:0.2rem;
+        }
         .fw {
-            width: calc(100% - 10rem);
+            width: 100%;
             padding: 0.35rem;
+            margin-top:0.2rem;
+        }
+
+        @media screen and (min-width: 718px) {
+            .form div input, .form div select {
+                width: calc(60% - 0.6rem);
+            }
+            .form div label {
+                width: calc(40% - 0.6rem);
+                text-align: right;
+            }
+            .lines > * {
+                 border-width: 0;
+            }
+            .pt {
+                margin-top: 0;
+                width: calc(100% - 23.2rem);
+            }
+            .fw {
+                width: calc(100% - 10rem);
+            }
         }
     </style>
 </head>
@@ -64,8 +192,8 @@
         <a href="" class="logo">bLite</a>
     </div>
     <div class="right">
-        <a href="admin">Admin</a>
-        <a href="home" class="active">Home</a>
+        <a href="admin" class="active">Admin</a>
+        <a href="home">Home</a>
     </div>
 </nav>
 <main>
@@ -90,7 +218,7 @@
             </div>
         </div>
     <?php die(); } ?>
-    <?php if ($confirmation) {
+    <?php if (isset($confirmation)) {
         echo '<alert class="info">'.$confirmation.'</alert>';
     } ?>
     <?php if ($router->view() == 'dashboard') {
@@ -131,17 +259,6 @@
     <hr/>
     <h3> Files </h3>
     <div class="lines">
-        <?php
-            if (isset($uploadedFiles)) {
-                echo "<div><pre>Uploaded files:\n";
-                foreach($uploadedFiles as $f) echo $f."\n";
-                echo "</pre></div>";
-            }
-            if (isset($fileConfirmation)) {
-                echo "<div><pre>$fileConfirmation</pre></div>";
-            }
-        ?>
-
         <div>
             <form action="<?php echo $config->adminPath; ?>?action=upload" class="form" method="post" enctype="multipart/form-data">
                 Files: <input name="files[]" type="file" multiple />
@@ -153,7 +270,7 @@
         <?php
             $myFiles = $files->listFiles();
             foreach($myFiles as $f) {
-                echo "<form action='$config->adminPath' method='post'>"
+                echo "<form action='' method='post'>"
                         ."<div class=''><input class='btn' type='submit' name='action' value='Delete'/> "
                         ."<input class='btn' type='submit' name='action' value='Rename'/> "
                         ."<input class='fw' type='text' name='newFile' value='$f'/></div>".
@@ -163,7 +280,7 @@
     </div>
     <?php } ?>
     <?php if ($router->view() == 'page') {
-        if ($error) {
+        if (isset($error)) {
             echo '<div><alert class="warn">'.$error.'</alert></div>';
         }
      ?>
@@ -171,8 +288,9 @@
         <input type="hidden" name="id" value="<?php echo $page->id; ?>"/>
         <div>
             <label for="savePage">&nbsp;</label>
-            <button id="savePage" type="submit">Save page</button>
-            <button id="cancel" type="cancel" onclick="event.preventDefault();window.location.href='<?php echo $config->adminPath; ?>';return false;">Cancel</button>
+            <button id="savePage" type="submit" class="btn">Save page</button>
+            <button id="cancel" type="cancel" class="btn"
+                onclick="event.preventDefault();window.location.href='<?php echo $config->adminPath; ?>';return false;">Cancel</button>
         </div>
         <div>
             <label for="slug">Slug:</label>
