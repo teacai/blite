@@ -1,6 +1,6 @@
 <?php
     $config = (object)[
-        'jwtKey' => '123450099joKo1',
+        'jwtKey' => 'change-me-key-123',
         'dbPath' => 'database.sqlite',
         'filesPath' => 'up',
         'filesDailyFolders' => false,

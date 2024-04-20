@@ -240,6 +240,32 @@ class Files {
         return strpos($filename, $this->config->filesPath) === 0 && strpos($filename, '/../') === false;
     }
 
+    public function createBackup() {
+        $rootPath = \realpath('.');
+        $rootPath = \rtrim($rootPath, '\\/');
+        $date = date("Y-m-d-H-i");
+        $backupPath = $this->getStoragePath('backups')."/blite.$date.backup.zip";
+        $zip = new \ZipArchive();
+        $zip->open($backupPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+
+        $files = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($rootPath), \RecursiveIteratorIterator::LEAVES_ONLY);
+
+        foreach ($files as $file) {
+            if (!$file->isDir()) {
+                $name = $file->getFilename();
+                if (\substr($name, 0, 6) != 'blite.' || \substr($name, -11) != '.backup.zip') {
+                    $filePath = $file->getRealPath();
+                    $relativePath = \substr($filePath, strlen($rootPath) + 1);
+                    $zip->addFile($filePath, $relativePath);
+                }
+            }
+        }
+
+        $zip->close();
+        return $backupPath;
+    }
+
     public function listFiles() {
         $pageNo = isset($_GET['fno']) ? ($_GET['fno'] - 1) : 0;
         $itemsPerPage = isset($_GET['fco']) ? $_GET['fco'] : 20;

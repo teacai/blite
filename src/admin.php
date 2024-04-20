@@ -2,8 +2,9 @@
     $isAdmin = $router->isAdmin();
     if ($isAdmin) {
         $files = new BLite\Files($config);
-
-        if (isset($_POST['action']) && isset($_POST['file'])) {
+        if (isset($_POST['action']) && $_POST['action'] === 'Backup') {
+            $confirmation = 'Backup file created at: '.$files->createBackup();
+        } elseif (isset($_POST['action']) && isset($_POST['file'])) {
             if ($_POST['action'] === 'Delete') {
                 $confirmation = $files->deleteFiles($_POST['file']);
             } elseif ($_POST['action'] === 'Rename') {
@@ -138,6 +139,7 @@
             padding: 0.4rem 0.8rem;
             border: 1px solid #333;
             text-decoration: none;
+            font-size: 1rem;
         }
         .lines {
             display: block;
@@ -165,6 +167,10 @@
             padding: 0.35rem;
             margin-top:0.2rem;
         }
+        .il {
+            width: auto;
+            display: inline-block;
+        }
 
         @media screen and (min-width: 718px) {
             .form div input, .form div select {
@@ -182,7 +188,7 @@
                 width: calc(100% - 23.2rem);
             }
             .fw {
-                width: calc(100% - 10rem);
+                width: calc(100% - 16.8rem);
             }
         }
     </style>
@@ -193,7 +199,7 @@
         <a href="" class="logo">bLite</a>
     </div>
     <div class="right">
-        <a href="admin" class="active">Admin</a>
+        <?php if ($router->isAdmin()) echo '<a href="'.$config->adminPath.'">Admin</a>' ?>
         <a href="home">Home</a>
     </div>
 </nav>
@@ -223,7 +229,8 @@
         echo '<alert class="info">'.$confirmation.'</alert>';
     } ?>
     <?php if ($router->view() == 'dashboard') {
-            if ($config->adminUsername == 'admin' || $config->adminPassword == 'admin' || $config->adminPath == 'admin') {
+            if ($config->adminUsername == 'admin' || $config->adminPassword == 'admin' ||
+                $config->adminPath == 'admin' || $config->jwtKey == 'change-me-key-123') {
                 echo '<alert class="danger">For your security, please change the default admin username, password and path (in index.php).</alert>';
             }
         ?>
@@ -261,10 +268,14 @@
     <h3> Files </h3>
     <div class="lines">
         <div>
-            <form action="<?php echo $config->adminPath; ?>?action=upload" class="form" method="post" enctype="multipart/form-data">
+            <form action="<?php echo $config->adminPath; ?>?action=upload" class="form il" method="post" enctype="multipart/form-data">
                 Files: <input name="files[]" type="file" multiple />
                 Directory: <input name="files[]" type="file" webkitdirectory multiple />
                 <input type="submit" class="btn" value="Upload" />
+            </form>
+            <form action="<?php echo $config->adminPath; ?>" class="form il" method="post">
+                <input name="action" type="hidden" value="Backup" />
+                <input type="submit" class="btn" value="Backup" />
             </form>
         </div>
 
@@ -274,6 +285,7 @@
                 echo "<form action='' method='post'>"
                         ."<div class=''><input class='btn' type='submit' name='action' value='Delete'/> "
                         ."<input class='btn' type='submit' name='action' value='Rename'/> "
+                        ."<a class='btn' href='$f' target='_blank'>Download</a> "
                         ."<input class='fw' type='text' name='newFile' value='$f'/></div>".
                         "<input type='hidden' name='file' value='$f'/></form>";
             }
