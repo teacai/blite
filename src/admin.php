@@ -42,6 +42,11 @@
                 $confirmation = 'Page deleted: '.$page->slug;
             }
         }
+        $updater = new BLite\Updater($config);
+        $updater->checkForUpdate();
+        if (isset($_GET['action']) && $_GET['action'] == 'upgrade') {
+            $confirmation = $updater->upgrade();
+        }
     }
 ?>
 
@@ -232,6 +237,11 @@
             if ($config->adminUsername == 'admin' || $config->adminPassword == 'admin' ||
                 $config->adminPath == 'admin' || $config->jwtKey == 'change-me-key-123') {
                 echo '<alert class="danger">For your security, please change the default admin username, password and path (in index.php).</alert>';
+            }
+
+            if ($config->currentVersion != $config->latestVersion) {
+                echo '<alert class="warn">New version available: v'.$config->latestVersion
+                    .' &nbsp; <a class="btn" href="'.$config->adminPath.'?action=upgrade">Upgrade</a></alert>';
             }
         ?>
         <h3> Pages </h3>

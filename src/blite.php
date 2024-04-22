@@ -414,4 +414,121 @@ class JWT {
         return $data;
     }
 }
+
+class Updater {
+    protected $config;
+    protected $updateInterval = 3600 * 24;
+
+    public function __construct($config) {
+        $this->config = $config;
+    }
+
+    public function updateConfig($latestVersion = '0.9', $lastUpdateCheck = '0', $currentVersion = null) {
+        $configFile = 'index.php';
+        $fileContents = \file_get_contents($configFile);
+
+        $configPatterns = [
+            '/\'latestVersion\'\s?=>\s?\'(\d+\.\d+)\'/i',
+            '/\'lastUpdateCheck\'\s?=>\s?\'(\d+)\'/i'
+        ];
+        $configReplacements = [
+            "'latestVersion' => '$latestVersion'",
+            "'lastUpdateCheck' => '$lastUpdateCheck'",
+        ];
+        if ($currentVersion != null) {
+            $configPatterns[] = '/\'currentVersion\'\s?=>\s?\'(\d+\.\d+)\'/i';
+            $configReplacements[] = "'currentVersion' => '$currentVersion'";
+        }
+
+        $newFileContents = \preg_replace($configPatterns, $configReplacements, $fileContents);
+        \rename($configFile, $configFile.'.old');
+        \file_put_contents($configFile, $newFileContents);
+    }
+
+    public function checkForUpdate() {
+        if (!$this->config->autoUpdateEnabled) return false;
+
+        if (empty($this->config->lastUpdateCheck) || $this->config->lastUpdateCheck < (\time() - $this->updateInterval)) {
+            $latestTag = $this->getLatestTag();
+            if ($this->config->currentVersion != $latestTag) {
+                $this->updateConfig($latestTag, \time());
+                $this->config->latestVersion = $latestTag;
+                return $latestTag;
+            }
+        }
+        return false;
+    }
+
+    public function getLatestTag() {
+        $redirectUrl = $this->getRedirectUrl($this->config->repoUrl.'/releases/latest');
+
+        return substr($redirectUrl, strpos($redirectUrl, '/tag/') + 5) ;
+    }
+
+    public function upgrade() {
+        $releaseUrl = 'https://codeload.github.com/teacai/blite/zip/refs/tags/'.$this->config->latestVersion;
+        $releaseFile = 'release.zip';
+        $this->downloadToFile($releaseFile, $releaseUrl);
+
+        if (\file_exists($releaseFile)) {
+            $coreFile = 'blite.php';
+            $adminFile = 'admin.php';
+            $foundCore = false;
+            $foundAdmin = false;
+            $zip = new \ZipArchive();
+            if ($zip->open($releaseFile) === true) {
+                for($i = 0; $i < $zip->numFiles; $i++) {
+                    if (substr($zip->getNameIndex($i), -9) == $coreFile) {
+                        $foundCore = true;
+                        \rename($coreFile, $coreFile.'.old');
+                        file_put_contents($coreFile, $zip->getFromName($zip->getNameIndex($i)));
+                    } elseif (substr($zip->getNameIndex($i), -9) == $adminFile) {
+                        $foundAdmin = true;
+                        \rename($adminFile, $adminFile.'.old');
+                        file_put_contents($adminFile, $zip->getFromName($zip->getNameIndex($i)));
+                    }
+                }
+            }
+            $zip->close();
+            if ($foundCore && $foundAdmin) {
+                unlink($releaseFile);
+                $this->config->currentVersion = $this->config->latestVersion;
+                $this->updateConfig($this->config->latestVersion, \time(), $this->config->latestVersion);
+                return 'Upgraded to v'.$this->config->latestVersion;
+            } else {
+                return 'Failed to process release file: '.$releaseFile;
+            }
+        } else {
+            return 'Failed to download release file: '.$releaseUrl;
+        }
+    }
+
+    public function getRedirectUrl($url) {
+        try {
+            $ch = \curl_init();
+            \curl_setopt($ch, \CURLOPT_URL, $url);
+            \curl_setopt($ch, \CURLOPT_RETURNTRANSFER, true);
+            \curl_setopt($ch, \CURLOPT_FOLLOWLOCATION, true);
+            $response = \curl_exec($ch);
+            $redirectUrl = \curl_getinfo($ch, \CURLINFO_EFFECTIVE_URL);
+            \curl_close($ch);
+            return $redirectUrl;
+        } catch (\Exception $e) {}
+        return $url;
+    }
+
+    public function downloadToFile($file, $url) {
+        $ch = \curl_init();
+        \curl_setopt($ch, \CURLOPT_URL, $url);
+        \curl_setopt($ch, \CURLOPT_RETURNTRANSFER, true);
+        \curl_setopt($ch, \CURLOPT_FOLLOWLOCATION, true);
+
+        $fp = \fopen($file, 'w');
+        \curl_setopt($ch, \CURLOPT_FILE, $fp);
+        \curl_exec($ch);
+        \curl_close($ch);
+        \fclose($fp);
+    }
+}
+
 ?>

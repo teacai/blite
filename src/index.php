@@ -7,7 +7,14 @@
         'adminPassword' => 'admin',
         'adminUsername' => 'admin',
         'adminPath' => 'admin',
-        'publicPagesPath' => 'posts'
+        'publicPagesPath' => 'posts',
+        'autoUpdateEnabled' => true,
+        // DO NOT CHANGE START
+        'repoUrl' => 'https://github.com/teacai/blite',
+        'currentVersion' => '0.2',
+        'latestVersion' => '0.0',
+        'lastUpdateCheck' => '0',
+        // DO NOT CHANGE END--
     ];
 
     require 'blite.php';
