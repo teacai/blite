@@ -12,8 +12,8 @@
         // DO NOT CHANGE START
         'repoUrl' => 'https://github.com/teacai/blite',
         'currentVersion' => '0.2',
-        'latestVersion' => '0.0',
-        'lastUpdateCheck' => '0',
+        'latestVersion' => '0.2',
+        'lastUpdateCheck' => '1713795423',
         // DO NOT CHANGE END--
     ];
 

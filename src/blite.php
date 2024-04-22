@@ -450,8 +450,8 @@ class Updater {
 
         if (empty($this->config->lastUpdateCheck) || $this->config->lastUpdateCheck < (\time() - $this->updateInterval)) {
             $latestTag = $this->getLatestTag();
-            if ($this->config->currentVersion != $latestTag) {
-                $this->updateConfig($latestTag, \time());
+            $this->updateConfig($latestTag, \time());
+            if ($this->config->latestVersion != $latestTag) {
                 $this->config->latestVersion = $latestTag;
                 return $latestTag;
             }
